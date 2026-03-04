@@ -3,8 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Viaggi di Gruppo - SPA</title>
+    <title>Viaggi di Gruppo - SPA Completa</title>
     <link rel="stylesheet" href="style.css">
+    
+    <!-- Leaflet CSS per mappa -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- jsPDF per generazione PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
 </head>
 <body>
     <!-- SCHERMATA LOGIN -->
@@ -25,7 +31,7 @@
                         required
                         autocomplete="off"
                     >
-                    <small class="hint">Utenti disponibili: mario.rossi, anna.verdi, luca.bianchi</small>
+                    <small class="hint">Utenti: mario.rossi, anna.verdi, luca.bianchi</small>
                 </div>
                 
                 <button type="submit" class="btn btn-primary">
@@ -40,11 +46,15 @@
 
     <!-- SCHERMATA PRINCIPALE -->
     <div id="app-container" class="container">
-        <!-- HEADER -->
+        <!-- HEADER CON NAVIGAZIONE -->
         <header class="header">
             <div class="header-content">
                 <div class="header-left">
-                    <h1>✈️ I Miei Viaggi</h1>
+                    <h1>✈️ Viaggi di Gruppo</h1>
+                    <nav class="main-nav">
+                        <button class="nav-btn active" data-view="viaggi">📋 Viaggi</button>
+                        <button class="nav-btn" data-view="mappa">🗺️ Mappa</button>
+                    </nav>
                 </div>
                 <div class="header-right">
                     <span class="user-badge">
@@ -56,55 +66,280 @@
             </div>
         </header>
 
-        <!-- LISTA VIAGGI -->
-        <main id="main-content" class="main-content">
+        <!-- VISTA VIAGGI -->
+        <main id="view-viaggi" class="main-content view active">
             <div class="content-header">
-                <h2>Tutti i Viaggi</h2>
-                <div class="stats">
-                    <span id="viaggi-count" class="badge">0 viaggi</span>
+                <div>
+                    <h2>I Tuoi Viaggi</h2>
+                    <div class="stats">
+                        <span id="viaggi-count" class="badge">0 viaggi</span>
+                    </div>
                 </div>
+                <button id="new-viaggio-btn" class="btn btn-primary">+ Nuovo Viaggio</button>
             </div>
 
-            <!-- Loader -->
             <div id="viaggi-loader" class="loader-container">
                 <div class="loader"></div>
                 <p>Caricamento viaggi...</p>
             </div>
 
-            <!-- Griglia viaggi -->
             <div id="viaggi-grid" class="viaggi-grid"></div>
 
-            <!-- Messaggio vuoto -->
             <div id="no-viaggi" class="empty-state">
                 <div class="empty-icon">🗺️</div>
                 <h3>Nessun viaggio trovato</h3>
-                <p>Non ci sono viaggi disponibili al momento.</p>
+                <p>Crea il tuo primo viaggio!</p>
             </div>
+        </main>
+
+        <!-- VISTA MAPPA -->
+        <main id="view-mappa" class="main-content view">
+            <div class="content-header">
+                <h2>🗺️ Mappa Viaggi</h2>
+                <div class="legend">
+                    <span class="legend-item"><span class="marker green"></span> Futuro</span>
+                    <span class="legend-item"><span class="marker red"></span> Concluso</span>
+                </div>
+            </div>
+            <div id="map-container" style="width: 100%; height: 600px; border-radius: 8px; overflow: hidden;"></div>
         </main>
 
         <!-- MODAL DETTAGLIO VIAGGIO -->
         <div id="viaggio-modal" class="modal">
             <div class="modal-backdrop"></div>
-            <div class="modal-content">
+            <div class="modal-content large">
                 <div class="modal-header">
                     <h2 id="modal-title"></h2>
-                    <button class="modal-close" id="close-modal">&times;</button>
+                    <button class="modal-close" id="close-viaggio-modal">&times;</button>
                 </div>
                 
                 <div class="modal-body">
-                    <!-- Loader modal -->
                     <div id="modal-loader" class="loader-container">
                         <div class="loader"></div>
-                        <p>Caricamento dettagli...</p>
+                        <p>Caricamento...</p>
                     </div>
 
-                    <!-- Contenuto dettaglio -->
-                    <div id="modal-details" class="viaggio-details"></div>
+                    <div id="modal-details" class="viaggio-details">
+                        <!-- Info generali -->
+                        <div class="detail-section">
+                            <h3>📌 Informazioni Generali</h3>
+                            <div id="viaggio-info"></div>
+                        </div>
+
+                        <!-- Partecipanti -->
+                        <div class="detail-section">
+                            <div class="section-header">
+                                <h3>👥 Partecipanti <span id="part-count"></span></h3>
+                                <button class="btn btn-small btn-primary" id="add-partecipante-btn">+ Aggiungi</button>
+                            </div>
+                            <div id="partecipanti-list"></div>
+                        </div>
+
+                        <!-- Attività -->
+                        <div class="detail-section">
+                            <div class="section-header">
+                                <h3>🎯 Attività <span id="att-count"></span></h3>
+                                <button class="btn btn-small btn-primary" id="add-attivita-btn">+ Aggiungi</button>
+                            </div>
+                            <div id="attivita-list"></div>
+                        </div>
+
+                        <!-- Spese -->
+                        <div class="detail-section">
+                            <div class="section-header">
+                                <h3>💰 Spese <span id="spese-count"></span></h3>
+                                <button class="btn btn-small btn-primary" id="add-spesa-btn">+ Aggiungi</button>
+                            </div>
+                            <div id="riepilogo-spese"></div>
+                            <div id="spese-list"></div>
+                        </div>
+
+                        <!-- Azioni -->
+                        <div class="modal-actions">
+                            <button class="btn btn-secondary" id="download-pdf-btn">📄 Scarica PDF</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL NUOVO VIAGGIO -->
+        <div id="new-viaggio-modal" class="modal">
+            <div class="modal-backdrop"></div>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>✈️ Nuovo Viaggio</h2>
+                    <button class="modal-close" id="close-new-viaggio-modal">&times;</button>
+                </div>
+                
+                <div class="modal-body">
+                    <form id="new-viaggio-form">
+                        <div class="form-group">
+                            <label for="nv-titolo">Titolo *</label>
+                            <input type="text" id="nv-titolo" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="nv-destinazione">Destinazione *</label>
+                            <input type="text" id="nv-destinazione" required>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="nv-data-inizio">Data Inizio *</label>
+                                <input type="date" id="nv-data-inizio" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="nv-data-fine">Data Fine</label>
+                                <input type="date" id="nv-data-fine">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="nv-stato">Stato</label>
+                            <select id="nv-stato">
+                                <option value="futuro">Futuro</option>
+                                <option value="concluso">Concluso</option>
+                            </select>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="nv-lat">Latitudine (opzionale)</label>
+                                <input type="number" id="nv-lat" step="any" placeholder="es. 41.9028">
+                            </div>
+                            <div class="form-group">
+                                <label for="nv-lng">Longitudine (opzionale)</label>
+                                <input type="number" id="nv-lng" step="any" placeholder="es. 12.4964">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="nv-note">Note</label>
+                            <textarea id="nv-note" rows="3"></textarea>
+                        </div>
+
+                        <div id="new-viaggio-error" class="error-message"></div>
+
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" id="cancel-new-viaggio">Annulla</button>
+                            <button type="submit" class="btn btn-primary">Crea Viaggio</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL AGGIUNGI PARTECIPANTE -->
+        <div id="add-partecipante-modal" class="modal">
+            <div class="modal-backdrop"></div>
+            <div class="modal-content small">
+                <div class="modal-header">
+                    <h3>Aggiungi Partecipante</h3>
+                    <button class="modal-close" id="close-add-partecipante">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="add-partecipante-form">
+                        <div class="form-group">
+                            <label>Username *</label>
+                            <input type="text" id="ap-username" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Nome</label>
+                            <input type="text" id="ap-nome">
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" id="cancel-add-partecipante">Annulla</button>
+                            <button type="submit" class="btn btn-primary">Aggiungi</button>
+                        </div>
+                    </form>
+</div>
+            </div>
+        </div>
+
+        <!-- MODAL AGGIUNGI ATTIVITÀ -->
+        <div id="add-attivita-modal" class="modal">
+            <div class="modal-backdrop"></div>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Aggiungi Attività</h3>
+                    <button class="modal-close" id="close-add-attivita">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="add-attivita-form">
+                        <div class="form-group">
+                            <label>Titolo *</label>
+                            <input type="text" id="aa-titolo" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Tipo</label>
+                            <select id="aa-tipo">
+                                <option value="visita">Visita</option>
+                                <option value="trasporto">Trasporto</option>
+                                <option value="pasto">Pasto</option>
+                                <option value="altro">Altro</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Descrizione</label>
+                            <textarea id="aa-descrizione" rows="2"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Luogo</label>
+                            <input type="text" id="aa-luogo">
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" id="cancel-add-attivita">Annulla</button>
+                            <button type="submit" class="btn btn-primary">Aggiungi</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL AGGIUNGI SPESA -->
+        <div id="add-spesa-modal" class="modal">
+            <div class="modal-backdrop"></div>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Aggiungi Spesa</h3>
+                    <button class="modal-close" id="close-add-spesa">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="add-spesa-form">
+                        <div class="form-group">
+                            <label>Descrizione *</label>
+                            <input type="text" id="as-descrizione" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Categoria</label>
+                            <select id="as-categoria">
+                                <option value="trasporto">Trasporto</option>
+                                <option value="alloggio">Alloggio</option>
+                                <option value="cibo">Cibo</option>
+                                <option value="attivita">Attività</option>
+                                <option value="shopping">Shopping</option>
+                                <option value="varie">Varie</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Importo (EUR) *</label>
+                            <input type="number" id="as-importo" step="0.01" required>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" id="cancel-add-spesa">Annulla</button>
+                            <button type="submit" class="btn btn-primary">Aggiungi</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Script principale -->
     <script src="script.js"></script>
 </body>
 </html>
