@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Viaggi di Gruppo - SPA</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- SCHERMATA LOGIN -->
+    <div id="login-container" class="container active">
+        <div class="card login-card">
+            <div class="logo">✈️</div>
+            <h1>Viaggi di Gruppo</h1>
+            <p class="subtitle">Organizza avventure con i tuoi amici</p>
+            
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input 
+                        type="text" 
+                        id="username" 
+                        name="username" 
+                        placeholder="es. mario.rossi"
+                        required
+                        autocomplete="off"
+                    >
+                    <small class="hint">Utenti disponibili: mario.rossi, anna.verdi, luca.bianchi</small>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">
+                    <span class="btn-text">Accedi</span>
+                    <span class="btn-loader"></span>
+                </button>
+                
+                <div id="login-error" class="error-message"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- SCHERMATA PRINCIPALE -->
+    <div id="app-container" class="container">
+        <!-- HEADER -->
+        <header class="header">
+            <div class="header-content">
+                <div class="header-left">
+                    <h1>✈️ I Miei Viaggi</h1>
+                </div>
+                <div class="header-right">
+                    <span class="user-badge">
+                        <span class="user-icon">👤</span>
+                        <span id="logged-username"></span>
+                    </span>
+                    <button id="logout-btn" class="btn btn-secondary">Esci</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- LISTA VIAGGI -->
+        <main id="main-content" class="main-content">
+            <div class="content-header">
+                <h2>Tutti i Viaggi</h2>
+                <div class="stats">
+                    <span id="viaggi-count" class="badge">0 viaggi</span>
+                </div>
+            </div>
+
+            <!-- Loader -->
+            <div id="viaggi-loader" class="loader-container">
+                <div class="loader"></div>
+                <p>Caricamento viaggi...</p>
+            </div>
+
+            <!-- Griglia viaggi -->
+            <div id="viaggi-grid" class="viaggi-grid"></div>
+
+            <!-- Messaggio vuoto -->
+            <div id="no-viaggi" class="empty-state">
+                <div class="empty-icon">🗺️</div>
+                <h3>Nessun viaggio trovato</h3>
+                <p>Non ci sono viaggi disponibili al momento.</p>
+            </div>
+        </main>
+
+        <!-- MODAL DETTAGLIO VIAGGIO -->
+        <div id="viaggio-modal" class="modal">
+            <div class="modal-backdrop"></div>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="modal-title"></h2>
+                    <button class="modal-close" id="close-modal">&times;</button>
+                </div>
+                
+                <div class="modal-body">
+                    <!-- Loader modal -->
+                    <div id="modal-loader" class="loader-container">
+                        <div class="loader"></div>
+                        <p>Caricamento dettagli...</p>
+                    </div>
+
+                    <!-- Contenuto dettaglio -->
+                    <div id="modal-details" class="viaggio-details"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
