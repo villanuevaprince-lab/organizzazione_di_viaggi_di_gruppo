@@ -1,5 +1,4 @@
 from flask import Flask, request, jsonify, abort, session
-from flask_cors import CORS
 from pymongo import MongoClient
 from bson import ObjectId
 from datetime import datetime, timedelta
@@ -26,30 +25,41 @@ LOCAL_ORIGINS = [
     "http://127.0.0.1:5500"
 ]
 
-def cors_origin():
-    """
-    Restituisce l'origin della richiesta se consentito,
-    altrimenti None (Flask-CORS bloccherà l'origin)
-    """
-    origin = request.headers.get('Origin')
+def is_allowed_origin(origin):
+    """Verifica se un origin è consentito"""
     if not origin:
-        return None
+        return False
     if origin in LOCAL_ORIGINS:
-        return origin
+        return True
     # Permetti tutti i subdomain di Codespaces su github.dev
     if origin.endswith(".app.github.dev"):
-        return origin
-    return None
+        return True
+    return False
 
-# CORS Fix: usa callable per origin dinamico
-CORS(app,
-     origins=cors_origin,           # 🔹 callable per origin dinamico
-     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-     allow_headers=["Content-Type", "Authorization"],
-     expose_headers=["Content-Type"],
-     supports_credentials=True,     # 🔹 necessario per sessioni
-     max_age=3600
-)
+# ✅ CORS manuale: gestione header con @app.after_request
+@app.after_request
+def add_cors_headers(response):
+    """Aggiungi header CORS manualmente per supportare Codespaces"""
+    origin = request.headers.get('Origin')
+    
+    if origin and is_allowed_origin(origin):
+        response.headers['Access-Control-Allow-Origin'] = origin
+        response.headers['Access-Control-Allow-Credentials'] = 'true'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+        response.headers['Access-Control-Expose-Headers'] = 'Content-Type'
+        response.headers['Access-Control-Max-Age'] = '3600'
+    
+    return response
+
+# Gestione preflight OPTIONS per tutte le route
+@app.before_request
+def handle_preflight():
+    """Gestisce richieste preflight OPTIONS"""
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.status_code = 200
+        return response
 
 # Connessione MongoDB
 MONGODB_URI = os.getenv("MONGODB_URI")
