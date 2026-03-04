@@ -8,7 +8,7 @@ Progetto sviluppato per esercizio informatica: backend REST API + frontend vanil
 
 ## 🎯 Caratteristiche Principali
 
-- **Backend**: FastAPI con MongoDB Atlas
+- **Backend**: Flask con MongoDB Atlas
 - **Frontend**: HTML/CSS/JavaScript puro (NO framework)
 - **Database**: MongoDB Atlas (già popolato con 10 viaggi)
 - **Funzionalità**: Login utente, elenco viaggi, dettaglio completo
@@ -20,7 +20,7 @@ Progetto sviluppato per esercizio informatica: backend REST API + frontend vanil
 
 ```
 spa-viaggi/
-├── backend/                    # API REST FastAPI
+├── backend/                    # API REST Flask
 │   ├── app.py                 # Applicazione principale
 │   ├── requirements.txt       # Dipendenze Python
 │   ├── .env                   # Configurazione MongoDB
@@ -50,11 +50,10 @@ cd backend
 pip install -r requirements.txt
 
 # Avvia il server
-uvicorn app:app --reload --host 0.0.0.0 --port 8000
+flask run --host 0.0.0.0 --port 8000 --debug
 ```
 
-✅ **Backend attivo su**: http://localhost:8000  
-📚 **Documentazione API**: http://localhost:8000/docs
+✅ **Backend attivo su**: http://localhost:8000
 
 ### 2️⃣ Frontend (SPA)
 
@@ -173,10 +172,9 @@ MONGODB_URI=mongodb+srv://Villanuevaprince_db:...@cluster0.rky3vjd.mongodb.net/
 ## 🛠️ Tecnologie Utilizzate
 
 ### Backend
-- **FastAPI** 0.109.0 - Framework web moderno
+- **Flask** 3.0.0 - Framework web micro
+- **Flask-CORS** 4.0.0 - Gestione CORS
 - **PyMongo** 4.6.1 - Driver MongoDB
-- **Uvicorn** - ASGI server
-- **Pydantic** - Validazione dati
 - **python-dotenv** - Gestione variabili ambiente
 
 ### Frontend
@@ -231,7 +229,7 @@ Modifica se backend è su host/porta diversi.
 - Controlla `.env` con MONGODB_URI corretto
 
 ### Errore CORS
-- Backend FastAPI ha già CORS abilitato
+- Backend Flask ha già CORS abilitato con Flask-CORS
 - Verifica `allow_origins` in `app.py`
 
 ### MongoDB non connette
@@ -302,7 +300,7 @@ curl http://localhost:8000/api/viaggi/{id}
 ## 🎓 Obiettivi Didattici Raggiunti
 
 ✅ SPA funzionante senza framework  
-✅ REST API con FastAPI  
+✅ REST API con Flask  
 ✅ Integrazione MongoDB Atlas  
 ✅ CRUD operations (Read)  
 ✅ Error handling completo  

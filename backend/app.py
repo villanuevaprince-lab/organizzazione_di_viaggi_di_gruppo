@@ -1,26 +1,27 @@
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from flask import Flask, request, jsonify, abort
+from flask_cors import CORS
 from pymongo import MongoClient
 from bson import ObjectId
-from typing import Optional, List
 import os
 from dotenv import load_dotenv
 
 # Carica variabili ambiente
 load_dotenv()
 
-app = FastAPI(title="API Viaggi di Gruppo", version="1.0.0")
+app = Flask(__name__)
 
 # Configurazione CORS per GitHub Codespaces e sviluppo locale
-# Nota: allow_credentials=True NON è compatibile con allow_origins=["*"]
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Permetti tutti gli origin
-    allow_credentials=False,  # Disabilita credentials per permettere wildcard
-    allow_methods=["*"],  # Permetti tutti i metodi HTTP
-    allow_headers=["*"],  # Permetti tutti gli header
-)
+# Configurazione esplicita per gestire correttamente le preflight requests
+CORS(app, resources={
+    r"/*": {
+        "origins": "*",
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "expose_headers": ["Content-Type"],
+        "supports_credentials": False,
+        "max_age": 3600
+    }
+})
 
 # Connessione MongoDB
 MONGODB_URI = os.getenv("MONGODB_URI")
@@ -31,17 +32,8 @@ client = MongoClient(MONGODB_URI)
 db = client.organizzazione_viaggi
 collection = db.viaggi
 
-# Modelli Pydantic
-class LoginRequest(BaseModel):
-    username: str
-
-class LoginResponse(BaseModel):
-    success: bool
-    message: str
-    username: Optional[str] = None
-
 # Helper per convertire ObjectId in stringa
-def viaggio_helper(viaggio) -> dict:
+def viaggio_helper(viaggio):
     """Converte il viaggio MongoDB in dict serializzabile JSON"""
     if viaggio is None:
         return None
@@ -50,19 +42,19 @@ def viaggio_helper(viaggio) -> dict:
     return viaggio
 
 # ROOT
-@app.get("/")
+@app.route("/", methods=["GET"])
 def root():
-    return {
-        "message": "API Viaggi di Gruppo - v1.0",
+    return jsonify({
+        "message": "API Viaggi di Gruppo - v1.0 (Flask)",
         "endpoints": {
             "login": "POST /api/login",
             "viaggi": "GET /api/viaggi",
             "dettaglio": "GET /api/viaggi/{id}"
         }
-    }
+    })
 
 # ENDPOINT 1: GET /api/viaggi - Elenco tutti i viaggi
-@app.get("/api/viaggi")
+@app.route("/api/viaggi", methods=["GET"])
 def get_viaggi():
     """Restituisce l'elenco di tutti i viaggi nel database"""
     try:
@@ -72,51 +64,72 @@ def get_viaggi():
         for viaggio in viaggi:
             viaggio["_id"] = str(viaggio["_id"])
         
-        return {
+        return jsonify({
             "success": True,
             "count": len(viaggi),
             "viaggi": viaggi
-        }
+        })
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Errore database: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": f"Errore database: {str(e)}"
+        }), 500
 
 # ENDPOINT 2: GET /api/viaggi/:id - Dettaglio singolo viaggio
-@app.get("/api/viaggi/{viaggio_id}")
-def get_viaggio_dettaglio(viaggio_id: str):
+@app.route("/api/viaggi/<viaggio_id>", methods=["GET"])
+def get_viaggio_dettaglio(viaggio_id):
     """Restituisce i dettagli di un viaggio specifico"""
     try:
         # Verifica che l'ID sia valido
         if not ObjectId.is_valid(viaggio_id):
-            raise HTTPException(status_code=400, detail="ID viaggio non valido")
+            return jsonify({
+                "success": False,
+                "detail": "ID viaggio non valido"
+            }), 400
         
         viaggio = collection.find_one({"_id": ObjectId(viaggio_id)})
         
         if not viaggio:
-            raise HTTPException(status_code=404, detail="Viaggio non trovato")
+            return jsonify({
+                "success": False,
+                "detail": "Viaggio non trovato"
+            }), 404
         
         # Converti ObjectId
         viaggio = viaggio_helper(viaggio)
         
-        return {
+        return jsonify({
             "success": True,
             "viaggio": viaggio
-        }
-    except HTTPException:
-        raise
+        })
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Errore database: {str(e)}")
+        return jsonify({
+            "success": False,
+            "detail": f"Errore database: {str(e)}"
+        }), 500
 
 # ENDPOINT 3: POST /api/login - Login utente semplice
-@app.post("/api/login", response_model=LoginResponse)
-def login(request: LoginRequest):
+@app.route("/api/login", methods=["POST"])
+def login():
     """
     Verifica se un utente esiste nei viaggi (come creatore o partecipante)
     Login semplice: solo username, no password
     """
-    username = request.username.strip()
+    data = request.get_json()
+    
+    if not data or 'username' not in data:
+        return jsonify({
+            "success": False,
+            "detail": "Username obbligatorio"
+        }), 400
+    
+    username = data['username'].strip()
     
     if not username:
-        raise HTTPException(status_code=400, detail="Username obbligatorio")
+        return jsonify({
+            "success": False,
+            "detail": "Username obbligatorio"
+        }), 400
     
     try:
         # Cerca utente come creatore
@@ -126,36 +139,41 @@ def login(request: LoginRequest):
         viaggio_partecipante = collection.find_one({"partecipanti.username": username})
         
         if viaggio_creatore or viaggio_partecipante:
-            return LoginResponse(
-                success=True,
-                message=f"Benvenuto {username}!",
-                username=username
-            )
+            return jsonify({
+                "success": True,
+                "message": f"Benvenuto {username}!",
+                "username": username
+            })
         else:
-            raise HTTPException(
-                status_code=404, 
-                detail=f"Utente '{username}' non trovato nei viaggi esistenti"
-            )
-    except HTTPException:
-        raise
+            return jsonify({
+                "success": False,
+                "detail": f"Utente '{username}' non trovato nei viaggi esistenti"
+            }), 404
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Errore database: {str(e)}")
+        return jsonify({
+            "success": False,
+            "detail": f"Errore database: {str(e)}"
+        }), 500
 
 # Health check
-@app.get("/health")
+@app.route("/health", methods=["GET"])
 def health_check():
     """Verifica stato connessione database"""
     try:
         # Ping database
         client.admin.command('ping')
         count = collection.count_documents({})
-        return {
+        return jsonify({
             "status": "healthy",
             "database": "connected",
             "viaggi_count": count
-        }
+        })
     except Exception as e:
-        return {
+        return jsonify({
             "status": "unhealthy",
             "error": str(e)
-        }
+        }), 500
+
+# Entry point per esecuzione diretta
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8000, debug=True)

@@ -138,10 +138,10 @@ const API_BASE_URL = 'https://tuodominio.com';
 
 **Errore CORS**:
 - Verifica che il backend abbia CORS abilitato
-- Backend FastAPI ha già `CORSMiddleware` configurato
+- Backend Flask ha già Flask-CORS configurato
 
 **API non risponde**:
-- Verifica che backend sia avviato (`uvicorn app:app --reload`)
+- Verifica che backend sia avviato (`flask run --host 0.0.0.0 --port 8000 --debug`)
 - Controlla console browser (F12) per errori rete
 - Verifica `API_BASE_URL` in `script.js`
 

@@ -1,6 +1,6 @@
 # 🚀 Backend API - Viaggi di Gruppo
 
-API REST sviluppata con **FastAPI** per gestire l'organizzazione di viaggi di gruppo.
+API REST sviluppata con **Flask** per gestire l'organizzazione di viaggi di gruppo.
 
 ## 📦 Installazione
 
@@ -23,13 +23,14 @@ MONGODB_URI=mongodb+srv://...
 
 ```bash
 # Modalità development con auto-reload
-uvicorn app:app --reload --host 0.0.0.0 --port 8000
+flask run --host 0.0.0.0 --port 8000 --debug
+
+# Oppure direttamente con Python
+python app.py
 ```
 
 Il server sarà disponibile su:
 - **API**: http://localhost:8000
-- **Documentazione Swagger**: http://localhost:8000/docs
-- **Redoc**: http://localhost:8000/redoc
 
 ## 🔌 Endpoint API
 
@@ -183,13 +184,13 @@ Verifica connessione database.
 
 **Porta 8000 già in uso**:
 ```bash
-uvicorn app:app --reload --port 8001
+flask run --host 0.0.0.0 --port 8001 --debug
 ```
 
 ## 📝 Note Tecniche
 
-- **Framework**: FastAPI 0.109.0
+- **Framework**: Flask 3.0.0
 - **Driver MongoDB**: PyMongo 4.6.1
-- **Validazione**: Pydantic 2.5.3
-- **ASGI Server**: Uvicorn
+- **CORS**: Flask-CORS 4.0.0
+- **WSGI Server**: Werkzeug (built-in)
 - **Python**: >= 3.8
