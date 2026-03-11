@@ -31,7 +31,19 @@
                         required
                         autocomplete="off"
                     >
-                    <small class="hint">Utenti: mario.rossi, anna.verdi, luca.bianchi</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        name="password" 
+                        placeholder="Inserisci password"
+                        required
+                        autocomplete="off"
+                    >
+                    <small class="hint">Utenti: mario.rossi/mario123, anna.verdi/anna123, luca.bianchi/luca123</small>
                 </div>
                 
                 <button type="submit" class="btn btn-primary">
@@ -215,8 +227,13 @@
                         </div>
 
                         <div class="form-group">
+                            <label for="nv-descrizione">Descrizione</label>
+                            <textarea id="nv-descrizione" rows="2"></textarea>
+                        </div>
+
+                        <div class="form-group">
                             <label for="nv-note">Note</label>
-                            <textarea id="nv-note" rows="3"></textarea>
+                            <textarea id="nv-note" rows="2"></textarea>
                         </div>
 
                         <div id="new-viaggio-error" class="error-message"></div>
@@ -241,19 +258,23 @@
                 <div class="modal-body">
                     <form id="add-partecipante-form">
                         <div class="form-group">
-                            <label>Username *</label>
-                            <input type="text" id="ap-username" required>
+                            <label>ID Partecipante *</label>
+                            <input type="text" id="ap-id" required placeholder="es. mario.rossi">
                         </div>
                         <div class="form-group">
                             <label>Nome</label>
-                            <input type="text" id="ap-nome">
+                            <input type="text" id="ap-nome" placeholder="es. Mario Rossi">
+                        </div>
+                        <div class="form-group">
+                            <label>Note</label>
+                            <input type="text" id="ap-note" placeholder="es. Organizzatore">
                         </div>
                         <div class="form-actions">
                             <button type="button" class="btn btn-secondary" id="cancel-add-partecipante">Annulla</button>
                             <button type="submit" class="btn btn-primary">Aggiungi</button>
                         </div>
                     </form>
-</div>
+                </div>
             </div>
         </div>
 

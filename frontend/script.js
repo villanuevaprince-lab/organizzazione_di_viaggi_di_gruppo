@@ -36,6 +36,13 @@ function formatDate(dateString) {
     return date.toLocaleDateString('it-IT');
 }
 
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = String(text);
+    return div.innerHTML;
+}
+
 function showMessage(message, type = 'success') {
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
@@ -104,10 +111,10 @@ async function checkSession() {
 }
 
 // Login
-async function login(username) {
+async function login(username, password) {
     return await apiCall('/api/login', {
         method: 'POST',
-        body: JSON.stringify({ username })
+        body: JSON.stringify({ username, password })
     });
 }
 
@@ -140,8 +147,8 @@ async function addPartecipante(viaggioId, partecipante) {
     });
 }
 
-async function removePartecipante(viaggioId, username) {
-    return await apiCall(`/api/viaggi/${viaggioId}/partecipanti/${username}`, {
+async function removePartecipante(viaggioId, partId) {
+    return await apiCall(`/api/viaggi/${viaggioId}/partecipanti/${partId}`, {
         method: 'DELETE'
     });
 }
@@ -200,6 +207,7 @@ function initLoginForm() {
     e.preventDefault();
     
     const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
     const errorDiv = document.getElementById('login-error');
     const submitBtn = e.target.querySelector('button[type="submit"]');
     
@@ -208,7 +216,7 @@ function initLoginForm() {
     submitBtn.querySelector('.btn-text').textContent = 'Accesso...';
     
     try {
-        const result = await login(username);
+        const result = await login(username, password);
         
         if (result.success) {
             currentUser = username;
@@ -279,7 +287,11 @@ function switchView(viewName) {
     document.getElementById(`view-${viewName}`).classList.add('active');
     
     // Inizializza mappa se necessario
-    if (viewName === 'mappa' && !map) {
+    if (viewName === 'mappa') {
+        if (map) {
+            map.remove();
+            map = null;
+        }
         initMap();
     }
 }
@@ -307,7 +319,9 @@ async function loadViaggi() {
         
         if (viaggi.length === 0) {
             noViaggi.style.display = 'flex';
+            grid.style.display = 'none';
         } else {
+            grid.style.display = 'grid';
             renderViaggi();
         }
     } catch (error) {
@@ -325,13 +339,13 @@ function renderViaggi() {
         card.className = 'viaggio-card';
         card.innerHTML = `
             <div class="card-header">
-                <h3>${viaggio.titolo || 'Senza titolo'}</h3>
+                <h3>${escapeHtml(viaggio.titolo) || 'Senza titolo'}</h3>
                 <span class="badge ${viaggio.stato === 'futuro' ? 'badge-success' : 'badge-danger'}">
-                    ${viaggio.stato || 'N/A'}
+                    ${escapeHtml(viaggio.stato) || 'N/A'}
                 </span>
             </div>
             <div class="card-body">
-                <p><strong>📍</strong> ${viaggio.destinazione || 'N/A'}</p>
+                <p><strong>📍</strong> ${escapeHtml(viaggio.destinazione) || 'N/A'}</p>
                 <p><strong>📅</strong> ${formatDate(viaggio.periodo?.dataInizio)} 
                     ${viaggio.periodo?.dataFine ? '- ' + formatDate(viaggio.periodo.dataFine) : ''}</p>
                 <p><strong>👥</strong> ${(viaggio.partecipanti?.length || 0) + 1} partecipanti</p>
@@ -385,6 +399,7 @@ function initNewViaggioForm() {
             dataFine: document.getElementById('nv-data-fine').value || null
         },
         stato: document.getElementById('nv-stato').value,
+        descrizione: document.getElementById('nv-descrizione').value.trim() || null,
         note: document.getElementById('nv-note').value.trim() || null
     };
     
@@ -447,12 +462,13 @@ function renderViaggioDetails(viaggio) {
     const infoDiv = document.getElementById('viaggio-info');
     infoDiv.innerHTML = `
         <div class="info-grid">
-            <div><strong>Destinazione:</strong> ${viaggio.destinazione || 'N/A'}</div>
-            <div><strong>Stato:</strong> <span class="badge ${viaggio.stato === 'futuro' ? 'badge-success' : 'badge-danger'}">${viaggio.stato}</span></div>
+            <div><strong>Destinazione:</strong> ${escapeHtml(viaggio.destinazione) || 'N/A'}</div>
+            <div><strong>Stato:</strong> <span class="badge ${viaggio.stato === 'futuro' ? 'badge-success' : 'badge-danger'}">${escapeHtml(viaggio.stato)}</span></div>
             <div><strong>Data Inizio:</strong> ${formatDate(viaggio.periodo?.dataInizio)}</div>
             <div><strong>Data Fine:</strong> ${formatDate(viaggio.periodo?.dataFine)}</div>
-            <div><strong>Creatore:</strong> ${viaggio.creatore?.nome || viaggio.creatore?.username || 'N/A'}</div>
-            ${viaggio.note ? `<div><strong>Note:</strong> ${viaggio.note}</div>` : ''}
+            <div><strong>Creatore:</strong> ${escapeHtml(viaggio.creatore?.nome || viaggio.creatore?.username) || 'N/A'}</div>
+            ${viaggio.descrizione ? `<div><strong>Descrizione:</strong> ${escapeHtml(viaggio.descrizione)}</div>` : ''}
+            ${viaggio.note ? `<div><strong>Note:</strong> ${escapeHtml(viaggio.note)}</div>` : ''}
         </div>
     `;
     
@@ -481,19 +497,19 @@ function renderPartecipanti(partecipanti) {
             <thead>
                 <tr>
                     <th>Nome</th>
-                    <th>Username</th>
-                    <th>Ruolo</th>
+                    <th>ID</th>
+                    <th>Note</th>
                     <th>Azioni</th>
                 </tr>
             </thead>
             <tbody>
                 ${partecipanti.map((p, idx) => `
                     <tr>
-                        <td>${p.nome || 'N/A'}</td>
-                        <td>${p.username || 'N/A'}</td>
-                        <td>${p.ruolo || 'partecipante'}</td>
+                        <td>${escapeHtml(p.nome) || 'N/A'}</td>
+                        <td>${escapeHtml(p.id) || 'N/A'}</td>
+                        <td>${escapeHtml(p.note) || '-'}</td>
                         <td>
-                            <button class="btn-icon" onclick="deletePartecipante('${p.username}')" title="Rimuovi">
+                            <button class="btn-icon" onclick="deletePartecipante('${escapeHtml(p.id)}')", title="Rimuovi">
                                 🗑️
                             </button>
                         </td>
@@ -637,8 +653,9 @@ function initPartecipantiForm() {
     e.preventDefault();
     
     const partecipante = {
-        username: document.getElementById('ap-username').value.trim(),
-        nome: document.getElementById('ap-nome').value.trim()
+        id: document.getElementById('ap-id').value.trim(),
+        nome: document.getElementById('ap-nome').value.trim(),
+        note: document.getElementById('ap-note').value.trim() || null
     };
     
     try {
@@ -656,11 +673,11 @@ function initPartecipantiForm() {
     });
 }
 
-async function deletePartecipante(username) {
-    if (!confirm(`Rimuovere ${username}?`)) return;
+async function deletePartecipante(partId) {
+    if (!confirm(`Rimuovere ${partId}?`)) return;
     
     try {
-        const result = await removePartecipante(currentViaggioId, username);
+        const result = await removePartecipante(currentViaggioId, partId);
         
         if (result.success) {
             showMessage('Partecipante rimosso!');
